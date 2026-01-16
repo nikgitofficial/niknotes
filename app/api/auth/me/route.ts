@@ -16,15 +16,25 @@ export async function GET(req: NextRequest) {
   try {
     // Try verifying access token
     if (accessToken) {
-      const user = verifyToken(accessToken);
-      return NextResponse.json({ user });
+      const decoded = verifyToken(accessToken);
+      const userFromDB = await User.findById(decoded.userId);
+      if (!userFromDB) return NextResponse.json({}, { status: 401 });
+
+      return NextResponse.json({
+        user: {
+          email: userFromDB.email,
+          name: userFromDB.name,
+          photoUrl: userFromDB.photo || "",
+          _id: userFromDB._id.toString(),
+        },
+      });
     }
   } catch {
     // Access token expired, try refresh token
     if (!refreshToken) return NextResponse.json({}, { status: 401 });
 
     try {
-      const decoded = verifyToken(refreshToken); // use verifyToken but check with refresh secret in your jwt lib if needed
+      const decoded = verifyToken(refreshToken); // verify refresh token
       const userFromDB = await User.findById(decoded.userId);
       if (!userFromDB || userFromDB.refreshToken !== refreshToken) {
         return NextResponse.json({}, { status: 401 });
@@ -37,7 +47,15 @@ export async function GET(req: NextRequest) {
         name: userFromDB.name,
       });
 
-      const res = NextResponse.json({ user: { email: userFromDB.email, name: userFromDB.name } });
+      const res = NextResponse.json({
+        user: {
+          email: userFromDB.email,
+          name: userFromDB.name,
+          photoUrl: userFromDB.photo || "",
+          _id: userFromDB._id.toString(),
+        },
+      });
+
       res.cookies.set("accessToken", newAccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

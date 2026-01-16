@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const newAccess = signAccessToken({
       userId: user._id.toString(),
       email: user.email,
-      name: user.name, // Include name in access token
+      name: user.name, 
     });
 
     const res = NextResponse.json({ message: "Access token refreshed" });
