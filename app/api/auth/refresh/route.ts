@@ -8,10 +8,10 @@ export async function POST(req: NextRequest) {
   if (!refreshToken) return NextResponse.json({}, { status: 401 });
 
   try {
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET!
-    ) as { userId: string; email: string };
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as {
+      userId: string;
+      email: string;
+    };
 
     const user = await User.findById(decoded.userId);
     if (!user || user.refreshToken !== refreshToken)
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     const newAccess = signAccessToken({
       userId: user._id.toString(),
       email: user.email,
+      name: user.name, // Include name in access token
     });
 
     const res = NextResponse.json({ message: "Access token refreshed" });
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 900,
+      maxAge: 900, // 15 minutes
     });
 
     return res;
