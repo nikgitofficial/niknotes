@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
    const blobRes = await put(file.name, file.stream(), {
    access: "public",
    addRandomSuffix: true, // avoid collisions
+   token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
    });
 
     // Save note with userId

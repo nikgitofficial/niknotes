@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
     // Upload file to Vercel Blob with a unique name
     const blob = await put(file.name, file, {
       access: "public",
-      addRandomSuffix: true, // ensures no filename conflicts
+      addRandomSuffix: true, // avoid collisions
+      token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
     });
 
     // Save URL to user's photo
