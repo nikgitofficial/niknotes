@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const blob = await put(image.name, image, { access: "public" });
+   const blob = await put(image.name, image, {
+  access: "public",
+  addRandomSuffix: true,
+});
 
     const note = await ImageNote.create({
       userId: user.userId,

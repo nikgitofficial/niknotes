@@ -5,16 +5,16 @@ export async function POST() {
 
   res.cookies.set("accessToken", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: true,
+    sameSite: "none",
     path: "/",
     expires: new Date(0),
   });
 
   res.cookies.set("refreshToken", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: true,
+    sameSite: "none",
     path: "/",
     expires: new Date(0),
   });

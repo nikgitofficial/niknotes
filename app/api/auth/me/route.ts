@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
 
       res.cookies.set("accessToken", newAccessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: true,
+        sameSite: "none",
         path: "/",
         maxAge: 900, // 15 min
       });

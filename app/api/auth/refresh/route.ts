@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ message: "Access token refreshed" });
     res.cookies.set("accessToken", newAccess, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: true,
+      sameSite: "none",
       path: "/",
       maxAge: 900, // 15 minutes
     });

@@ -44,8 +44,8 @@ export async function middleware(req: NextRequest) {
       const response = NextResponse.next();
       response.cookies.set("accessToken", newAccess, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: true,
+        sameSite: "none",
         path: "/",
         maxAge: 900, // 15 minutes
       });
