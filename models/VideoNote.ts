@@ -1,12 +1,12 @@
 import { Schema, model, models } from "mongoose";
 
-const ImageNoteSchema = new Schema(
+const VideoNoteSchema = new Schema(
   {
     userId: { type: String, required: true },
     title: { type: String, required: true },
-    imageUrls: [{ type: String, required: true }],
+    videoUrl: { type: String, required: true },
   },
   { timestamps: true }
 );
 
-export default models.ImageNote || model("ImageNote", ImageNoteSchema);
+export default models.VideoNote || model("VideoNote", VideoNoteSchema);

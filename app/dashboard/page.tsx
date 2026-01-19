@@ -15,6 +15,7 @@ import LogoutButton from "@/components/LogoutButton";
 import TextNotes from "./components/TextNotes";
 import ImageNotes from "./components/ImageNotes";
 import FileNotes from "./components/FileNotes";
+import VideoNotes from "./components/VideoNotes";
 
 type User = {
   email: string;
@@ -71,6 +72,7 @@ export default function DashboardSPA() {
     { name: "Text Notes", icon: <HiOutlineDocumentText size={20} />, key: "text-notes" },
     { name: "Image Notes", icon: <HiOutlinePhotograph size={20} />, key: "image-notes" },
     { name: "File Notes", icon: <HiOutlinePaperClip size={20} />, key: "file-notes" },
+    { name: "Video Notes", icon: <HiOutlinePhotograph size={20} />, key: "video-notes" },
     { name: "Profile", icon: <HiUser size={20} />, key: "profile" },
     { name: "Settings", icon: <HiCog size={20} />, key: "settings" },
   ];
@@ -133,6 +135,8 @@ export default function DashboardSPA() {
         return <ImageNotes />;
       case "file-notes":
         return <FileNotes />;
+      case "video-notes":
+        return <VideoNotes />;
       case "profile":
         return (
           <div className="p-6">

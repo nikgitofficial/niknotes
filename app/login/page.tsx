@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { HiEye, HiEyeOff } from "react-icons/hi";
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,17 +44,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDD20D]">
-      <Navbar />
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+      <main className="flex flex-1 items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md bg-white shadow-2xl rounded-3xl p-8 md:p-10 animate-fade-in">
 
-      <main className="flex flex-1 items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 md:p-10 animate-fade-in">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <img
+              src="/images/logov3.png"
+              alt="Logo"
+              className="h-16 w-16 md:h-20 md:w-20 object-contain"
+            />
+          </div>
+
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6 text-center">
             Login to Your Account
           </h2>
 
           {error && (
-            <p className="text-red-600 bg-red-50 border border-red-200 p-2 rounded mb-4 text-center">
+            <p className="text-red-700 bg-red-50 border border-red-200 p-3 rounded-lg mb-5 text-center text-sm md:text-base animate-pulse">
               {error}
             </p>
           )}
@@ -64,38 +72,60 @@ export default function LoginPage() {
               type="email"
               placeholder="Email"
               value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              className="w-full border border-gray-300 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="w-full border border-gray-300 bg-white placeholder-gray-400 text-gray-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               required
             />
-            <input
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={e => setForm({ ...form, password: e.target.value })}
-              className="w-full border border-gray-300 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              required
-            />
+
+            {/* Password field with show/hide toggle */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className="w-full border border-gray-300 bg-white placeholder-gray-400 text-gray-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 pr-12"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                {showPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
+              </button>
+            </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-gray-500">
-            Don’t have an account?{" "}
-            <a href="/register" className="text-blue-600 hover:underline font-medium">
-              Sign Up
-            </a>
-          </p>
+          <div className="mt-6 text-center text-gray-500 text-sm md:text-base space-y-2">
+            <p>
+              Don’t have an account?{" "}
+              <a
+                href="/register"
+                className="text-blue-600 hover:underline font-medium"
+              >
+                Sign Up
+              </a>
+            </p>
+            <p>
+              <a
+                href="/"
+                className="text-blue-600 hover:underline font-medium"
+              >
+                Back to Home
+              </a>
+            </p>
+          </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
