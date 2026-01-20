@@ -1,4 +1,3 @@
-// models/OTP.ts
 import mongoose, { Schema, model, models } from "mongoose";
 
 const otpSchema = new Schema({

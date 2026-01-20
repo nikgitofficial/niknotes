@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
         {step === 1 && (
           <>
             <h2 className="text-xl font-bold mb-4 text-black">Forgot Password</h2>
-            {error && <p className="text-red-600 text-black mb-2">{error}</p>}
+            {error && <p className="text-red-600 mb-2">{error}</p>}
             <input
               type="email"
               placeholder="Email"
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
         {step === 2 && (
           <>
             <h2 className="text-xl font-bold mb-4 text-black">Reset Password</h2>
-            {error && <p className="text-red-600 text-black mb-2">{error}</p>}
+            {error && <p className="text-red-600 mb-2">{error}</p>}
             <input
               type="text"
               placeholder="OTP"
