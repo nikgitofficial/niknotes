@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
         const blob = await put(image.name, image, {
           access: "public",
           addRandomSuffix: true,
+          token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
         });
         return blob.url;
       })
