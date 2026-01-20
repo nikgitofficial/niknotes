@@ -98,7 +98,7 @@ export default function RegisterPage() {
             placeholder="Name"
             value={form.name}
             onChange={e => setForm({ ...form, name: e.target.value })}
-            className="w-full border border-gray-300 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+            className="w-full border border-gray-300 bg-white placeholder-gray-400 text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
             required
           />
 
@@ -107,7 +107,7 @@ export default function RegisterPage() {
             placeholder="Email"
             value={form.email}
             onChange={e => setForm({ ...form, email: e.target.value })}
-            className="w-full border border-gray-300 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+            className="w-full border border-gray-300  placeholder-gray-400 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
             required
           />
 
@@ -118,7 +118,7 @@ export default function RegisterPage() {
               placeholder="Password"
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
-              className="w-full border border-gray-300 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-12"
+              className="w-full border border-gray-300 placeholder-gray-400 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-12"
               required
             />
             <button
@@ -140,7 +140,7 @@ export default function RegisterPage() {
               placeholder="Confirm Password"
               value={form.confirmPassword}
               onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
-              className="w-full border border-gray-300 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-12"
+              className="w-full border border-gray-300  placeholder-gray-400 bg-white placeholder-black text-black p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-12"
               required
             />
             <button

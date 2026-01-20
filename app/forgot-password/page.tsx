@@ -94,7 +94,8 @@ export default function ForgotPasswordPage() {
               placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full border p-3 rounded mb-4 text-black placeholder-black"
+              className="w-full border p-3 rounded mb-4 text-black placeholder-gray-400
+ "
             />
             <button
               onClick={sendOTP}
@@ -116,7 +117,7 @@ export default function ForgotPasswordPage() {
               placeholder="OTP"
               value={otp}
               onChange={e => setOtp(e.target.value)}
-              className="w-full border p-3 rounded mb-4 text-black placeholder-black"
+              className="w-full border p-3 rounded mb-4 text-black placeholder-gray-400"
             />
 
             {/* New Password */}
@@ -126,7 +127,7 @@ export default function ForgotPasswordPage() {
                 placeholder="New Password"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
-                className="w-full border p-3 rounded text-black placeholder-black pr-12"
+                className="w-full border p-3 rounded text-black placeholder-gray-400"
               />
               <button
                 type="button"
@@ -144,7 +145,7 @@ export default function ForgotPasswordPage() {
                 placeholder="Confirm Password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className="w-full border p-3 rounded text-black placeholder-black pr-12"
+                className="w-full border p-3 rounded text-black  placeholder-gray-400"
               />
               <button
                 type="button"
