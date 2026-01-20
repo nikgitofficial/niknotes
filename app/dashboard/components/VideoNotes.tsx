@@ -10,6 +10,8 @@ type VideoNoteType = {
   createdAt: string;
 };
 
+type ToastType = "create" | "update" | "delete";
+
 export default function VideoNotes() {
   const [notes, setNotes] = useState<VideoNoteType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,8 +22,12 @@ export default function VideoNotes() {
   const [files, setFiles] = useState<File[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
   const [errors, setErrors] = useState<{ title?: string; files?: string }>({});
+  
+  // Toast
+  const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
+
+  useEffect(() => { fetchNotes(); }, []);
 
   const fetchNotes = async () => {
     try {
@@ -37,7 +43,10 @@ export default function VideoNotes() {
     }
   };
 
-  useEffect(() => { fetchNotes(); }, []);
+  const showToast = (type: ToastType, message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const validate = () => {
     const errs: { title?: string; files?: string } = {};
@@ -47,7 +56,6 @@ export default function VideoNotes() {
     return Object.keys(errs).length === 0;
   };
 
-  /* ---------------- CREATE / UPDATE ---------------- */
   const handleSave = async () => {
     if (!validate()) return;
 
@@ -59,18 +67,15 @@ export default function VideoNotes() {
 
     try {
       const method = editingNoteId ? "PUT" : "POST";
-      const res = await fetch("/api/notes/video", {
-        method,
-        body: formData,
-        credentials: "include",
-      });
-
+      const res = await fetch("/api/notes/video", { method, body: formData, credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         if (editingNoteId) {
           setNotes(notes.map(n => n._id === editingNoteId ? data.note : n));
+          showToast("update", "Video note updated");
         } else {
           setNotes([...data.notes, ...notes]);
+          showToast("create", `${data.notes.length} video(s) uploaded`);
         }
         closeModal();
       }
@@ -81,20 +86,16 @@ export default function VideoNotes() {
     }
   };
 
-  /* ---------------- DELETE ---------------- */
   const handleDelete = async () => {
     if (!deleteId) return;
     setActionLoading(true);
-
     try {
-      const res = await fetch(`/api/notes/video?noteId=${deleteId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const res = await fetch(`/api/notes/video?noteId=${deleteId}`, { method: "DELETE", credentials: "include" });
       if (res.ok) {
         setNotes(notes.filter(n => n._id !== deleteId));
         setDeleteId(null);
         setDeleteModalOpen(false);
+        showToast("delete", "Video note deleted");
       }
     } catch (err) {
       console.error(err);
@@ -127,7 +128,7 @@ export default function VideoNotes() {
   if (loading) return <p className="p-6">Loading...</p>;
 
   return (
-    <div className="p-6">
+    <div className="p-6 relative">
       <h1 className="text-2xl font-bold text-green-800 mb-4 flex items-center gap-2">
         <HiOutlineVideoCamera /> Video Notes
       </h1>
@@ -166,63 +167,78 @@ export default function VideoNotes() {
         ))}
       </div>
 
-      {/* Create / Edit Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md relative text-black shadow-2xl">
-            <button onClick={closeModal} className="absolute top-3 right-3 text-black hover:text-gray-700">
-              <HiX size={24} />
-            </button>
-
-            <h3 className="font-bold mb-3">{editingNoteId ? "Edit Video Note" : "New Video Note"}</h3>
-
-            <input
-              type="text"
-              placeholder="Title"
-              className={`w-full p-2 mb-2 border rounded ${errors.title ? "border-red-500" : "border-gray-300"}`}
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-            />
-            {errors.title && <p className="text-red-600 text-sm mb-2">{errors.title}</p>}
-
-            {!editingNoteId && (
-              <>
-                <input
-                  type="file"
-                  accept="video/*"
-                  multiple
-                  onChange={e => setFiles(Array.from(e.target.files || []))}
-                  className={`mb-4 border p-1 rounded ${errors.files ? "border-red-500" : "border-gray-300"}`}
-                />
-                {errors.files && <p className="text-red-600 text-sm mb-2">{errors.files}</p>}
-              </>
-            )}
-
-            {files.length > 0 && (
-              <div className="grid grid-cols-1 gap-2 mb-4">
-                {files.map((file, i) => (
-                  <p key={i} className="text-sm text-gray-700">{file.name}</p>
-                ))}
-              </div>
-            )}
-
-            <button
-              onClick={handleSave}
-              disabled={actionLoading}
-              className={`w-full py-2 rounded text-white ${
-                editingNoteId ? "bg-blue-600 hover:bg-blue-700" : "bg-green-700 hover:bg-green-800"
-              } flex justify-center items-center gap-2`}
-            >
-              {actionLoading && (
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              )}
-              {editingNoteId ? "Save Changes" : "Upload"}
-            </button>
-          </div>
+      {/* Toast / Snackbar */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded shadow-lg text-white z-50 ${
+            toast.type === "create" ? "bg-green-600" :
+            toast.type === "update" ? "bg-blue-600" :
+            "bg-red-600"
+          }`}
+        >
+          {toast.message}
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Create / Edit Modal */}
+     {modalOpen && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+    <div className="bg-white p-6 rounded-lg w-full max-w-md relative text-black shadow-2xl">
+      <button onClick={closeModal} className="absolute top-3 right-3 text-black hover:text-gray-700">
+        <HiX size={24} />
+      </button>
+
+      <h3 className="font-bold mb-3">{editingNoteId ? "Edit Video Note" : "New Video Note"}</h3>
+
+      <input
+        type="text"
+        placeholder="Title"
+        className={`w-full p-2 mb-2 border rounded ${errors.title ? "border-red-500" : "border-gray-300"}`}
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+      />
+      {errors.title && <p className="text-red-600 text-sm mb-2">{errors.title}</p>}
+
+      {!editingNoteId && (
+        <>
+          <div className="relative mb-4">
+            <HiOutlineVideoCamera className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="file"
+              accept="video/*"
+              multiple
+              onChange={e => setFiles(Array.from(e.target.files || []))}
+              className={`w-full pl-8 border p-2 rounded ${errors.files ? "border-red-500" : "border-gray-300"}`}
+            />
+          </div>
+          {errors.files && <p className="text-red-600 text-sm mb-2">{errors.files}</p>}
+        </>
+      )}
+
+      {files.length > 0 && (
+        <div className="grid grid-cols-1 gap-2 mb-4">
+          {files.map((file, i) => (
+            <p key={i} className="text-sm text-gray-700">{file.name}</p>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={handleSave}
+        disabled={actionLoading}
+        className={`w-full py-2 rounded text-white ${
+          editingNoteId ? "bg-blue-600 hover:bg-blue-700" : "bg-green-700 hover:bg-green-800"
+        } flex justify-center items-center gap-2`}
+      >
+        {actionLoading && <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+        {editingNoteId ? "Save Changes" : "Upload"}
+      </button>
+    </div>
+  </div>
+)}
+
+
+      {/* Delete Modal */}
       {deleteModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-white p-6 rounded-lg w-full max-w-sm relative text-black shadow-2xl">
