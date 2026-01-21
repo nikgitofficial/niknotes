@@ -56,58 +56,35 @@ export default function VideoNotes() {
     return Object.keys(errs).length === 0;
   };
 
-const handleSave = async () => {
-  if (!validate()) return;
+  const handleSave = async () => {
+    if (!validate()) return;
 
-  setActionLoading(true);
-
-  try {
-    const uploadedUrls: string[] = [];
-
-    for (const file of files) {
-      const uploadRes = await fetch("/api/blob/upload", {
-        method: "POST",
-        headers: {
-          "x-file-name": file.name,
-        },
-        body: file,
-      });
-
-      if (!uploadRes.ok) throw new Error("Upload failed");
-      const { url } = await uploadRes.json();
-      uploadedUrls.push(url);
-    }
-
+    setActionLoading(true);
     const formData = new FormData();
     formData.append("title", title);
-    uploadedUrls.forEach(url => formData.append("videos", url));
+    if (files.length > 0) files.forEach(f => formData.append("videos", f));
     if (editingNoteId) formData.append("noteId", editingNoteId);
 
-    const method = editingNoteId ? "PUT" : "POST";
-    const res = await fetch("/api/notes/video", {
-      method,
-      body: formData,
-      credentials: "include",
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (editingNoteId) {
-        setNotes(notes.map(n => n._id === editingNoteId ? data.note : n));
-        showToast("update", "Video note updated");
-      } else {
-        setNotes([...data.notes, ...notes]);
-        showToast("create", `${data.notes.length} video(s) uploaded`);
+    try {
+      const method = editingNoteId ? "PUT" : "POST";
+      const res = await fetch("/api/notes/video", { method, body: formData, credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        if (editingNoteId) {
+          setNotes(notes.map(n => n._id === editingNoteId ? data.note : n));
+          showToast("update", "Video note updated");
+        } else {
+          setNotes([...data.notes, ...notes]);
+          showToast("create", `${data.notes.length} video(s) uploaded`);
+        }
+        closeModal();
       }
-      closeModal();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setActionLoading(false);
-  }
-};
-
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;

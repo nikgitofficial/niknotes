@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import VideoNote from "@/models/VideoNote";
 import { verifyToken } from "@/lib/jwt";
+import { put } from "@vercel/blob";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,18 +28,25 @@ export async function POST(req: NextRequest) {
     const user = verifyToken(token);
     const formData = await req.formData();
     const title = formData.get("title") as string;
-    const videoUrls = formData.getAll("videos") as string[];
+    const files = formData.getAll("videos") as File[];
 
-    if (!title || videoUrls.length === 0)
+    if (!title || files.length === 0)
       return NextResponse.json({ error: "Title and at least one video required" }, { status: 400 });
 
     const notes = [];
-    for (const url of videoUrls) {
+    for (const file of files) {
+      const blob = await put(file.name, file.stream(), {
+        access: "public",
+        addRandomSuffix: true,
+        token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
+      });
+
       const note = await VideoNote.create({
         userId: user.userId,
         title,
-        videoUrl: url,
+        videoUrl: blob.url,
       });
+
       notes.push(note);
     }
 
@@ -59,7 +67,7 @@ export async function PUT(req: NextRequest) {
     const formData = await req.formData();
     const noteId = formData.get("noteId") as string;
     const title = formData.get("title") as string;
-    const videoUrls = formData.getAll("videos") as string[];
+    const files = formData.getAll("videos") as File[];
 
     if (!noteId || !title) return NextResponse.json({ error: "Missing noteId or title" }, { status: 400 });
 
@@ -70,9 +78,14 @@ export async function PUT(req: NextRequest) {
     // Update title always
     note.title = title;
 
-    // Only replace video if new URLs were sent
-    if (videoUrls.length > 0) {
-      note.videoUrl = videoUrls[0]; // you can handle multiple URLs if needed
+    // Only replace video if a new one was uploaded
+    if (files.length > 0) {
+      const blob = await put(files[0].name, files[0].stream(), {
+        access: "public",
+        addRandomSuffix: true,
+        token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
+      });
+      note.videoUrl = blob.url;
     }
 
     await note.save();
@@ -82,6 +95,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: NextRequest) {
   try {
