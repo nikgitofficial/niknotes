@@ -2,13 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { HiX, HiOutlinePhotograph } from "react-icons/hi";
+import { put } from "@vercel/blob";
 
-type VideoNote = {
-  _id: string;
-  title: string;
-  videoUrls: string[];
-  createdAt: string;
-};
+type VideoNote = { _id: string; title: string; videoUrls: string[]; createdAt: string };
 
 export default function VideoNotes() {
   const [notes, setNotes] = useState<VideoNote[]>([]);
@@ -37,6 +33,10 @@ export default function VideoNotes() {
     setTimeout(() => setSnackbar(null), 3000);
   };
 
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
   const fetchNotes = async () => {
     try {
       const res = await fetch("/api/notes/video", { credentials: "include" });
@@ -52,37 +52,37 @@ export default function VideoNotes() {
     }
   };
 
-  useEffect(() => {
-    fetchNotes();
-  }, []);
+  /* ---------------- Upload to Blob ---------------- */
+  const uploadFiles = async (files: File[]) => {
+    const token = process.env.NEXT_PUBLIC_BLOB_TOKEN!;
+    return await Promise.all(
+      files.map(file =>
+        put(file.name, file, { access: "public", addRandomSuffix: true, token }).then(b => b.url)
+      )
+    );
+  };
 
   /* ---------------- CREATE ---------------- */
   const handleCreate = async () => {
     if (!title.trim() || files.length === 0) {
-      showSnackbar("Title and at least one video required", "error");
+      showSnackbar("Title and videos required", "error");
       return;
     }
-
     setSaveLoading(true);
-    const formData = new FormData();
-    formData.append("title", title);
-    files.forEach((file) => formData.append("videos", file));
-
     try {
+      const videoUrls = await uploadFiles(files);
       const res = await fetch("/api/notes/video", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, videoUrls }),
         credentials: "include",
       });
-
       if (res.ok) {
         const data = await res.json();
         setNotes([data.note, ...notes]);
         showSnackbar("Video note created", "create");
         closeModal();
-      } else {
-        showSnackbar("Failed to create note", "error");
-      }
+      } else showSnackbar("Failed to create note", "error");
     } catch (err) {
       console.error(err);
       showSnackbar("Failed to create note", "error");
@@ -94,86 +94,51 @@ export default function VideoNotes() {
   /* ---------------- UPDATE ---------------- */
   const handleUpdate = async () => {
     if (!editingNoteId) return;
-
-    if (!title.trim()) {
-      showSnackbar("Title is required", "error");
-      return;
-    }
-
+    if (!title.trim()) { showSnackbar("Title is required", "error"); return; }
     setSaveLoading(true);
-    const formData = new FormData();
-    formData.append("noteId", editingNoteId);
-    formData.append("title", title);
-    files.forEach((file) => formData.append("videos", file));
-
     try {
+      let videoUrls: string[] | undefined = undefined;
+      if (files.length > 0) videoUrls = await uploadFiles(files);
+
       const res = await fetch("/api/notes/video", {
         method: "PUT",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noteId: editingNoteId, title, videoUrls }),
         credentials: "include",
       });
 
       if (res.ok) {
         const data = await res.json();
-        setNotes(notes.map((n) => (n._id === data.note._id ? data.note : n)));
+        setNotes(notes.map(n => n._id === data.note._id ? data.note : n));
         showSnackbar("Video note updated", "update");
         closeModal();
-      } else {
-        showSnackbar("Failed to update note", "error");
-      }
+      } else showSnackbar("Failed to update note", "error");
     } catch (err) {
       console.error(err);
       showSnackbar("Failed to update note", "error");
-    } finally {
-      setSaveLoading(false);
-    }
+    } finally { setSaveLoading(false); }
   };
 
   /* ---------------- DELETE ---------------- */
   const handleDelete = async () => {
     if (!deletingNoteId) return;
-
     setDeleteLoading(true);
     try {
-      const res = await fetch(`/api/notes/video?noteId=${deletingNoteId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
+      const res = await fetch(`/api/notes/video?noteId=${deletingNoteId}`, { method: "DELETE", credentials: "include" });
       if (res.ok) {
-        setNotes(notes.filter((n) => n._id !== deletingNoteId));
+        setNotes(notes.filter(n => n._id !== deletingNoteId));
         showSnackbar("Video note deleted", "delete");
         setDeleteModalOpen(false);
         setDeletingNoteId(null);
-      } else {
-        showSnackbar("Failed to delete note", "error");
-      }
-    } catch (err) {
-      console.error(err);
+      } else showSnackbar("Failed to delete note", "error");
+    } catch {
       showSnackbar("Failed to delete note", "error");
-    } finally {
-      setDeleteLoading(false);
-    }
+    } finally { setDeleteLoading(false); }
   };
 
-  const openEdit = (note: VideoNote) => {
-    setEditingNoteId(note._id);
-    setTitle(note.title);
-    setFiles([]);
-    setModalOpen(true);
-  };
-
-  const openDeleteModal = (id: string) => {
-    setDeletingNoteId(id);
-    setDeleteModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setTitle("");
-    setFiles([]);
-    setEditingNoteId(null);
-  };
+  const openEdit = (note: VideoNote) => { setEditingNoteId(note._id); setTitle(note.title); setFiles([]); setModalOpen(true); };
+  const openDeleteModal = (id: string) => { setDeletingNoteId(id); setDeleteModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setTitle(""); setFiles([]); setEditingNoteId(null); };
 
   if (loading) return <p className="p-6 text-center">Loading...</p>;
 
@@ -191,34 +156,16 @@ export default function VideoNotes() {
       </button>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {notes.map((note) => (
+        {notes.map(note => (
           <div key={note._id} className="bg-white p-3 rounded-lg shadow relative">
             <h2 className="font-semibold text-green-800 mb-2">{note.title}</h2>
-            <p className="text-xs text-gray-500 mb-2">
-              {new Date(note.createdAt).toLocaleString()}
-            </p>
-
+            <p className="text-xs text-gray-500 mb-2">{new Date(note.createdAt).toLocaleString()}</p>
             <div className="space-y-2">
-              {(note.videoUrls ?? []).map((url, i) => (
-                <video key={i} controls className="w-full rounded">
-                  <source src={url} />
-                </video>
-              ))}
+              {note.videoUrls.map((url, i) => <video key={i} controls className="w-full rounded"><source src={url} /></video>)}
             </div>
-
             <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => openEdit(note)}
-                className="flex-1 bg-blue-600 text-white text-sm py-1 rounded"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => openDeleteModal(note._id)}
-                className="flex-1 bg-red-600 text-white text-sm py-1 rounded"
-              >
-                Delete
-              </button>
+              <button onClick={() => openEdit(note)} className="flex-1 bg-blue-600 text-white text-sm py-1 rounded">Edit</button>
+              <button onClick={() => openDeleteModal(note._id)} className="flex-1 bg-red-600 text-white text-sm py-1 rounded">Delete</button>
             </div>
           </div>
         ))}
@@ -228,12 +175,8 @@ export default function VideoNotes() {
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-white p-6 rounded-lg w-full max-w-md relative text-black">
-            <button onClick={closeModal} className="absolute top-3 right-3">
-              <HiX size={24} />
-            </button>
-
+            <button onClick={closeModal} className="absolute top-3 right-3"><HiX size={24} /></button>
             <h3 className="font-bold mb-3">{editingNoteId ? "Edit Video Note" : "New Video Note"}</h3>
-
             <input
               type="text"
               placeholder="Title"
@@ -241,7 +184,6 @@ export default function VideoNotes() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
-
             <input
               type="file"
               accept="video/*"
@@ -249,7 +191,6 @@ export default function VideoNotes() {
               onChange={(e) => setFiles(Array.from(e.target.files || []))}
               className="mb-4"
             />
-
             {files.length > 0 && (
               <div className="space-y-2 mb-4">
                 {files.map((file, i) => (
@@ -259,7 +200,6 @@ export default function VideoNotes() {
                 ))}
               </div>
             )}
-
             <button
               onClick={editingNoteId ? handleUpdate : handleCreate}
               disabled={saveLoading}
@@ -277,15 +217,9 @@ export default function VideoNotes() {
       {deleteModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-sm relative text-black">
-            <HiX
-              size={24}
-              className="absolute top-3 right-3 cursor-pointer"
-              onClick={() => setDeleteModalOpen(false)}
-            />
+            <HiX size={24} className="absolute top-3 right-3 cursor-pointer" onClick={() => setDeleteModalOpen(false)} />
             <h3 className="font-bold mb-3 text-center">Confirm Delete</h3>
-            <p className="text-gray-700 mb-4 text-center">
-              Are you sure you want to delete this video note?
-            </p>
+            <p className="text-gray-700 mb-4 text-center">Are you sure you want to delete this video note?</p>
             <button
               onClick={handleDelete}
               disabled={deleteLoading}
@@ -293,9 +227,7 @@ export default function VideoNotes() {
             >
               {deleteLoading ? (
                 <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mx-auto block animate-spin"></span>
-              ) : (
-                "Confirm Delete"
-              )}
+              ) : "Confirm Delete"}
             </button>
           </div>
         </div>
@@ -305,15 +237,14 @@ export default function VideoNotes() {
       {snackbar && (
         <div
           className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded shadow-lg text-white
-          ${
-            snackbar.type === "create"
+            ${snackbar.type === "create"
               ? "bg-green-600"
               : snackbar.type === "update"
               ? "bg-blue-600"
               : snackbar.type === "delete"
               ? "bg-red-600"
               : "bg-gray-600"
-          } animate-slide-in`}
+            } animate-slide-in`}
         >
           {snackbar.message}
         </div>
@@ -324,14 +255,8 @@ export default function VideoNotes() {
           animation: slide-in 0.3s ease-out;
         }
         @keyframes slide-in {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
       `}</style>
     </div>
