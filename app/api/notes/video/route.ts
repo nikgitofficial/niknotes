@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     const user = verifyToken(token);
     const notes = await VideoNote.find({ userId: user.userId }).sort({ createdAt: -1 });
     return NextResponse.json({ notes });
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    console.error("GET /api/notes/video error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -28,48 +28,31 @@ export async function POST(req: NextRequest) {
     const user = verifyToken(token);
     const formData = await req.formData();
     const title = formData.get("title") as string;
-
-    const videoUrls = formData.getAll("videoUrls") as string[];
     const files = formData.getAll("videos") as File[];
 
-    if (!title || (videoUrls.length === 0 && files.length === 0))
-      return NextResponse.json({ error: "Title and video required" }, { status: 400 });
+    if (!title || files.length === 0)
+      return NextResponse.json({ error: "Title and at least one video required" }, { status: 400 });
 
     const notes = [];
-
-    // ✅ PRODUCTION (direct blob upload)
-    if (videoUrls.length > 0) {
-      for (const url of videoUrls) {
-        notes.push(
-          await VideoNote.create({
-            userId: user.userId,
-            title,
-            videoUrl: url,
-          })
-        );
-      }
-    }
-
-    // ✅ LOCAL DEV fallback
     for (const file of files) {
       const blob = await put(file.name, file.stream(), {
         access: "public",
         addRandomSuffix: true,
-        token: process.env.BLOB_READ_WRITE_TOKEN,
+        token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
       });
 
-      notes.push(
-        await VideoNote.create({
-          userId: user.userId,
-          title,
-          videoUrl: blob.url,
-        })
-      );
+      const note = await VideoNote.create({
+        userId: user.userId,
+        title,
+        videoUrl: blob.url,
+      });
+
+      notes.push(note);
     }
 
     return NextResponse.json({ notes });
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    console.error("POST /api/notes/video error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -82,36 +65,37 @@ export async function PUT(req: NextRequest) {
 
     const user = verifyToken(token);
     const formData = await req.formData();
-
     const noteId = formData.get("noteId") as string;
     const title = formData.get("title") as string;
-    const videoUrls = formData.getAll("videoUrls") as string[];
     const files = formData.getAll("videos") as File[];
 
-    const note = await VideoNote.findById(noteId);
-    if (!note || note.userId !== user.userId)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!noteId || !title) return NextResponse.json({ error: "Missing noteId or title" }, { status: 400 });
 
+    const note = await VideoNote.findById(noteId);
+    if (!note) return NextResponse.json({ error: "Note not found" }, { status: 404 });
+    if (note.userId !== user.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Update title always
     note.title = title;
 
-    if (videoUrls.length > 0) {
-      note.videoUrl = videoUrls[0];
-    } else if (files.length > 0) {
+    // Only replace video if a new one was uploaded
+    if (files.length > 0) {
       const blob = await put(files[0].name, files[0].stream(), {
         access: "public",
         addRandomSuffix: true,
-        token: process.env.BLOB_READ_WRITE_TOKEN,
+        token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
       });
       note.videoUrl = blob.url;
     }
 
     await note.save();
     return NextResponse.json({ note });
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    console.error("PUT /api/notes/video error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -121,15 +105,16 @@ export async function DELETE(req: NextRequest) {
 
     const user = verifyToken(token);
     const noteId = req.nextUrl.searchParams.get("noteId");
+    if (!noteId) return NextResponse.json({ error: "Missing noteId" }, { status: 400 });
 
     const note = await VideoNote.findById(noteId);
-    if (!note || note.userId !== user.userId)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!note) return NextResponse.json({ error: "Note not found" }, { status: 404 });
+    if (note.userId !== user.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     await note.deleteOne();
-    return NextResponse.json({ message: "Deleted" });
-  } catch (err) {
-    console.error(err);
+    return NextResponse.json({ message: "Deleted successfully" });
+  } catch (err: any) {
+    console.error("DELETE /api/notes/video error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
