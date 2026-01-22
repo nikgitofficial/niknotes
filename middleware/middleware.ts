@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, signAccessToken } from "@/lib/jwt";
+import { verifyToken, signAccessToken, JWTPayload } from "@/lib/jwt";
 import User from "@/models/User";
 import connectDB from "@/lib/mongodb";
 
+// Middleware to protect /dashboard routes
 export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
@@ -12,22 +13,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Try verifying access token first
+  // Verify access token first
   try {
     if (accessToken) {
-      verifyToken(accessToken);
-      return NextResponse.next(); // access token valid, continue
+      verifyToken(accessToken); // throws if invalid/expired
+      return NextResponse.next();
     }
   } catch {
-    // access token expired, try refresh token
-    if (!refreshToken) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
+    // Access token invalid or expired, try refresh token
+    if (!refreshToken) return NextResponse.redirect(new URL("/login", req.url));
 
     try {
-      // Connect to DB to verify refresh token
       await connectDB();
-      const decoded = verifyToken(refreshToken); // use JWT refresh secret if needed
+
+      const decoded: JWTPayload = verifyToken(refreshToken, true); // true = refresh token
       const user = await User.findById(decoded.userId);
 
       if (!user || user.refreshToken !== refreshToken) {
@@ -42,23 +41,28 @@ export async function middleware(req: NextRequest) {
       });
 
       const response = NextResponse.next();
+
+      // Set cookie with environment-safe options
       response.cookies.set("accessToken", newAccess, {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
+        secure: process.env.NODE_ENV === "production", // false in dev
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
         maxAge: 900, // 15 minutes
       });
 
       return response;
-    } catch {
+    } catch (err) {
+      console.error("Refresh token failed:", err);
       return NextResponse.redirect(new URL("/login", req.url));
     }
   }
 
+  // Fallback redirect
   return NextResponse.redirect(new URL("/login", req.url));
 }
 
+// Apply middleware only to /dashboard routes
 export const config = {
-  matcher: ["/dashboard/:path*"], // protect dashboard routes
+  matcher: ["/dashboard/:path*"],
 };

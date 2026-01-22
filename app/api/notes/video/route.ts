@@ -11,7 +11,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Handle video upload
+// POST: Upload video
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -51,21 +51,20 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Return all uploaded videos for the logged-in user
+// GET: Fetch videos for the logged-in user
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
     const token = req.cookies.get("accessToken")?.value;
-    if (!token) return NextResponse.json([], { status: 200 }); // return empty array instead of broken JSON
+    if (!token) return NextResponse.json([], { status: 200 });
 
     const user: JWTPayload = verifyToken(token);
-
     const videos = await VideoNote.find({ userId: user.userId }).sort({ createdAt: -1 });
 
     return NextResponse.json(videos);
   } catch (err: any) {
     console.error(err);
-    return NextResponse.json([], { status: 200 }); // fallback empty array
+    return NextResponse.json([], { status: 200 });
   }
 }

@@ -7,7 +7,7 @@ type VideoNote = {
   videoUrls: string[];
 };
 
-export default function VideoUpload() {
+export default function VideoDashboard() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("");
@@ -17,7 +17,7 @@ export default function VideoUpload() {
   useEffect(() => {
     async function fetchVideos() {
       try {
-        const res = await fetch("/api/notes/video");
+        const res = await fetch("/api/notes/video", { credentials: "include" });
         const data = await res.json();
         if (Array.isArray(data)) setVideos(data);
       } catch (err) {
@@ -49,7 +49,7 @@ export default function VideoUpload() {
           const response = JSON.parse(xhr.responseText);
           setMessage("Upload successful!");
           setProgress(0);
-          setVideos((prev) => [...prev, response]); // add new video to list
+          setVideos((prev) => [...prev, response]);
         } else {
           setMessage("Upload failed: " + xhr.responseText);
         }
@@ -64,26 +64,28 @@ export default function VideoUpload() {
 
   return (
     <div className="space-y-4">
-      <input
-        type="file"
-        accept="video/*"
-        onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-      />
-      {progress > 0 && <div>Uploading: {progress}%</div>}
-      <button
-        onClick={handleUpload}
-        className="px-4 py-2 bg-blue-600 text-white rounded"
-      >
-        Upload Video
-      </button>
-      {message && <p>{message}</p>}
+      <div className="flex flex-col gap-2">
+        <input
+          type="file"
+          accept="video/*"
+          onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+        />
+        {progress > 0 && <div>Uploading: {progress}%</div>}
+        <button
+          onClick={handleUpload}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Upload Video
+        </button>
+        {message && <p>{message}</p>}
+      </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         {videos.map((v) =>
           v.videoUrls.map((url, i) => (
-            <div key={v._id + i}>
-              <p>{v.title}</p>
-              <video src={url} controls className="w-full max-w-md" />
+            <div key={v._id + i} className="border p-2 rounded">
+              <p className="font-semibold">{v.title}</p>
+              <video src={url} controls className="w-full rounded mt-2" />
             </div>
           ))
         )}
