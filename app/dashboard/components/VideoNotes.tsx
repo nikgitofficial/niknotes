@@ -1,158 +1,93 @@
 "use client";
+import { useState, useEffect } from "react";
 
-import { useEffect, useState } from "react";
-import { HiX, HiOutlinePhotograph, HiPencil, HiTrash } from "react-icons/hi";
-
-type VideoNote = { _id: string; title: string; videoUrls: string[]; createdAt: string };
-
-/* ===== CLIENT UPLOAD HELPER ===== */
-const uploadVideo = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch("/api/blob/upload", { method: "POST", body: formData });
-  if (!res.ok) throw new Error("Upload failed");
-
-  const data = await res.json();
-  return data.url; // the URL from Vercel Blob
+type VideoNote = {
+  _id: string;
+  title: string;
+  videoUrls: string[];
 };
 
-export default function VideoNotes() {
-  const [notes, setNotes] = useState<VideoNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editNote, setEditNote] = useState<VideoNote | null>(null);
-  const [title, setTitle] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [saveLoading, setSaveLoading] = useState(false);
+export default function VideoUpload() {
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [message, setMessage] = useState("");
+  const [videos, setVideos] = useState<VideoNote[]>([]);
 
+  // Fetch videos on mount
   useEffect(() => {
-    fetch("/api/notes/video", { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => setNotes(d.notes))
-      .finally(() => setLoading(false));
+    async function fetchVideos() {
+      try {
+        const res = await fetch("/api/notes/video");
+        const data = await res.json();
+        if (Array.isArray(data)) setVideos(data);
+      } catch (err) {
+        console.error("Failed to fetch videos", err);
+      }
+    }
+    fetchVideos();
   }, []);
 
-  /* ===== CREATE or EDIT ===== */
-  const handleSave = async () => {
-    if (!title || (files.length === 0 && !editNote)) return;
-    setSaveLoading(true);
+  const handleUpload = async () => {
+    if (!videoFile) return alert("Select a video first.");
+
+    const formData = new FormData();
+    formData.append("video", videoFile);
 
     try {
-      const videoUrls = files.length > 0 ? await Promise.all(files.map(uploadVideo)) : editNote?.videoUrls || [];
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/notes/video");
 
-      const res = await fetch(editNote ? "/api/notes/video" : "/api/notes/video", {
-        method: editNote ? "PUT" : "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          editNote
-            ? { noteId: editNote._id, title, videoUrls }
-            : { title, videoUrls }
-        ),
-      });
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setProgress(percent);
+        }
+      };
 
-      const data = await res.json();
+      xhr.onload = () => {
+        if (xhr.status === 201) {
+          const response = JSON.parse(xhr.responseText);
+          setMessage("Upload successful!");
+          setProgress(0);
+          setVideos((prev) => [...prev, response]); // add new video to list
+        } else {
+          setMessage("Upload failed: " + xhr.responseText);
+        }
+      };
 
-      if (editNote) {
-        setNotes((prev) => prev.map((n) => (n._id === editNote._id ? data.note : n)));
-      } else {
-        setNotes((prev) => [data.note, ...prev]);
-      }
-
-      setModalOpen(false);
-      setEditNote(null);
-      setTitle("");
-      setFiles([]);
-    } finally {
-      setSaveLoading(false);
+      xhr.onerror = () => setMessage("Upload error.");
+      xhr.send(formData);
+    } catch (err: any) {
+      setMessage("Error: " + err.message);
     }
   };
 
-  /* ===== DELETE ===== */
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this note?")) return;
-    await fetch(`/api/notes/video?noteId=${id}`, { method: "DELETE", credentials: "include" });
-    setNotes((prev) => prev.filter((n) => n._id !== id));
-  };
-
-  /* ===== OPEN EDIT MODAL ===== */
-  const openEditModal = (note: VideoNote) => {
-    setEditNote(note);
-    setTitle(note.title);
-    setFiles([]);
-    setModalOpen(true);
-  };
-
-  if (loading) return <p className="p-6 text-center">Loading...</p>;
-
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-        <HiOutlinePhotograph /> Video Notes
-      </h1>
-
+    <div className="space-y-4">
+      <input
+        type="file"
+        accept="video/*"
+        onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+      />
+      {progress > 0 && <div>Uploading: {progress}%</div>}
       <button
-        onClick={() => setModalOpen(true)}
-        className="mb-6 bg-green-700 text-white px-4 py-2 rounded"
+        onClick={handleUpload}
+        className="px-4 py-2 bg-blue-600 text-white rounded"
       >
         Upload Video
       </button>
+      {message && <p>{message}</p>}
 
-      <div className="grid gap-4">
-        {notes.map((note) => (
-          <div key={note._id} className="bg-white p-3 rounded shadow relative">
-            <h2 className="font-semibold flex justify-between items-center">
-              {note.title}
-              <div className="flex gap-2">
-                <button onClick={() => openEditModal(note)} className="text-blue-600 hover:text-blue-800">
-                  <HiPencil />
-                </button>
-                <button onClick={() => handleDelete(note._id)} className="text-red-600 hover:text-red-800">
-                  <HiTrash />
-                </button>
-              </div>
-            </h2>
-            {note.videoUrls.map((url, i) => (
-              <video key={i} controls className="w-full mt-2">
-                <source src={url} />
-              </video>
-            ))}
-          </div>
-        ))}
+      <div className="space-y-4">
+        {videos.map((v) =>
+          v.videoUrls.map((url, i) => (
+            <div key={v._id + i}>
+              <p>{v.title}</p>
+              <video src={url} controls className="w-full max-w-md" />
+            </div>
+          ))
+        )}
       </div>
-
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded w-full max-w-md relative">
-            <button onClick={() => { setModalOpen(false); setEditNote(null); }} className="absolute top-3 right-3">
-              <HiX />
-            </button>
-
-            <input
-              className="w-full p-2 border mb-3"
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-
-            <input
-              type="file"
-              multiple
-              accept="video/*"
-              onChange={(e) => setFiles(Array.from(e.target.files || []))}
-            />
-
-            <button
-              onClick={handleSave}
-              disabled={saveLoading}
-              className="mt-4 w-full bg-green-700 text-white py-2 rounded"
-            >
-              {saveLoading ? "Saving..." : editNote ? "Update" : "Upload"}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

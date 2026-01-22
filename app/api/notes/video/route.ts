@@ -1,88 +1,71 @@
 import { NextRequest, NextResponse } from "next/server";
+import { v2 as cloudinary } from "cloudinary";
 import connectDB from "@/lib/mongodb";
 import VideoNote from "@/models/VideoNote";
-import { verifyToken } from "@/lib/jwt";
+import { verifyToken, JWTPayload } from "@/lib/jwt";
 
-/* GET */
-export async function GET(req: NextRequest) {
-  await connectDB();
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-  const token = req.cookies.get("accessToken")?.value;
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const user = verifyToken(token);
-  const notes = await VideoNote.find({ userId: user.userId }).sort({ createdAt: -1 });
-
-  return NextResponse.json({ notes });
-}
-
-/* POST */
+// Handle video upload
 export async function POST(req: NextRequest) {
-  await connectDB();
+  try {
+    await connectDB();
 
-  const token = req.cookies.get("accessToken")?.value;
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const token = req.cookies.get("accessToken")?.value;
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const user = verifyToken(token);
-  const { title, videoUrls } = await req.json();
+    const user: JWTPayload = verifyToken(token);
 
-  if (!title || !videoUrls?.length)
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    const formData = await req.formData();
+    const file = formData.get("video") as File;
+    if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
-  // ✅ Validate video URLs (must be a valid string starting with https://)
-  const validUrls = videoUrls.filter(
-    (url: string) => typeof url === "string" && url.startsWith("https://")
-  );
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-  if (validUrls.length === 0)
-    return NextResponse.json({ error: "No valid video URLs" }, { status: 400 });
+    const uploadResult: { secure_url: string } = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: "video" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result as { secure_url: string });
+        }
+      );
+      stream.end(buffer);
+    });
 
-  const note = await VideoNote.create({
-    userId: user.userId,
-    title,
-    videoUrls: validUrls,
-  });
+    const newVideo = await VideoNote.create({
+      userId: user.userId,
+      title: file.name,
+      videoUrls: [uploadResult.secure_url],
+    });
 
-  return NextResponse.json({ note });
-}
-
-/* PUT */
-export async function PUT(req: NextRequest) {
-  await connectDB();
-
-  const token = req.cookies.get("accessToken")?.value;
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const user = verifyToken(token);
-  const { noteId, title, videoUrls } = await req.json();
-
-  const note = await VideoNote.findOne({ _id: noteId, userId: user.userId });
-  if (!note) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  note.title = title;
-
-  if (videoUrls?.length) {
-    const validUrls = videoUrls.filter(
-      (url: string) => typeof url === "string" && url.startsWith("https://")
-    );
-    if (validUrls.length > 0) note.videoUrls = validUrls;
+    return NextResponse.json(newVideo, { status: 201 });
+  } catch (err: any) {
+    console.error(err);
+    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
   }
-
-  await note.save();
-  return NextResponse.json({ note });
 }
 
-/* DELETE */
-export async function DELETE(req: NextRequest) {
-  await connectDB();
+// Return all uploaded videos for the logged-in user
+export async function GET(req: NextRequest) {
+  try {
+    await connectDB();
 
-  const token = req.cookies.get("accessToken")?.value;
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const token = req.cookies.get("accessToken")?.value;
+    if (!token) return NextResponse.json([], { status: 200 }); // return empty array instead of broken JSON
 
-  const user = verifyToken(token);
-  const { searchParams } = new URL(req.url);
-  const noteId = searchParams.get("noteId");
+    const user: JWTPayload = verifyToken(token);
 
-  await VideoNote.findOneAndDelete({ _id: noteId, userId: user.userId });
-  return NextResponse.json({ success: true });
+    const videos = await VideoNote.find({ userId: user.userId }).sort({ createdAt: -1 });
+
+    return NextResponse.json(videos);
+  } catch (err: any) {
+    console.error(err);
+    return NextResponse.json([], { status: 200 }); // fallback empty array
+  }
 }
