@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       access: "public",
       contentType: file.type,
       addRandomSuffix: true,
-      token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
     return NextResponse.json(blob); // { url: string, key, size, contentType... }
