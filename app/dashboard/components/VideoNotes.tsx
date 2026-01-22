@@ -17,7 +17,9 @@ export default function VideoDashboard() {
   useEffect(() => {
     async function fetchVideos() {
       try {
-        const res = await fetch("/api/notes/video", { credentials: "include" });
+        const res = await fetch("/api/notes/video", {
+          credentials: "include", // crucial for sending cookies in prod
+        });
         const data = await res.json();
         if (Array.isArray(data)) setVideos(data);
       } catch (err) {
@@ -36,6 +38,7 @@ export default function VideoDashboard() {
     try {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "/api/notes/video");
+      xhr.withCredentials = true; // crucial for production cookies
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
