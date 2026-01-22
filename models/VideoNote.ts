@@ -1,4 +1,3 @@
-// /models/VideoNote.ts
 import { Schema, model, models } from "mongoose";
 
 const VideoNoteSchema = new Schema(

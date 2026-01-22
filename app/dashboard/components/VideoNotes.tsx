@@ -13,13 +13,10 @@ export default function VideoDashboard() {
   const [message, setMessage] = useState("");
   const [videos, setVideos] = useState<VideoNote[]>([]);
 
-  // Fetch videos on mount
   useEffect(() => {
     async function fetchVideos() {
       try {
-        const res = await fetch("/api/notes/video", {
-          credentials: "include", // crucial for sending cookies in prod
-        });
+        const res = await fetch("/api/notes/video", { credentials: "include" });
         const data = await res.json();
         if (Array.isArray(data)) setVideos(data);
       } catch (err) {
@@ -38,21 +35,20 @@ export default function VideoDashboard() {
     try {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "/api/notes/video");
-      xhr.withCredentials = true; // crucial for production cookies
+      xhr.withCredentials = true;
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          setProgress(percent);
+          setProgress(Math.round((event.loaded / event.total) * 100));
         }
       };
 
       xhr.onload = () => {
         if (xhr.status === 201) {
           const response = JSON.parse(xhr.responseText);
+          setVideos((prev) => [...prev, response]);
           setMessage("Upload successful!");
           setProgress(0);
-          setVideos((prev) => [...prev, response]);
         } else {
           setMessage("Upload failed: " + xhr.responseText);
         }

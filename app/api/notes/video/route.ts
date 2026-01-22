@@ -4,14 +4,14 @@ import connectDB from "@/lib/mongodb";
 import VideoNote from "@/models/VideoNote";
 import { verifyToken, JWTPayload } from "@/lib/jwt";
 
-// Cloudinary configuration
+// Cloudinary config
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// POST: Upload video
+// Upload video
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET: Fetch videos for the logged-in user
+// Fetch user videos
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
