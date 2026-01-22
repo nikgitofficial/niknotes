@@ -6,32 +6,50 @@ import { verifyToken } from "@/lib/jwt";
 /* GET */
 export async function GET(req: NextRequest) {
   await connectDB();
+
   const token = req.cookies.get("accessToken")?.value;
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = verifyToken(token);
   const notes = await VideoNote.find({ userId: user.userId }).sort({ createdAt: -1 });
+
   return NextResponse.json({ notes });
 }
 
 /* POST */
 export async function POST(req: NextRequest) {
   await connectDB();
+
   const token = req.cookies.get("accessToken")?.value;
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = verifyToken(token);
   const { title, videoUrls } = await req.json();
+
   if (!title || !videoUrls?.length)
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const note = await VideoNote.create({ userId: user.userId, title, videoUrls });
+  // ✅ Validate video URLs (must be a valid string starting with https://)
+  const validUrls = videoUrls.filter(
+    (url: string) => typeof url === "string" && url.startsWith("https://")
+  );
+
+  if (validUrls.length === 0)
+    return NextResponse.json({ error: "No valid video URLs" }, { status: 400 });
+
+  const note = await VideoNote.create({
+    userId: user.userId,
+    title,
+    videoUrls: validUrls,
+  });
+
   return NextResponse.json({ note });
 }
 
 /* PUT */
 export async function PUT(req: NextRequest) {
   await connectDB();
+
   const token = req.cookies.get("accessToken")?.value;
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -42,21 +60,29 @@ export async function PUT(req: NextRequest) {
   if (!note) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   note.title = title;
-  if (videoUrls?.length) note.videoUrls = videoUrls;
-  await note.save();
 
+  if (videoUrls?.length) {
+    const validUrls = videoUrls.filter(
+      (url: string) => typeof url === "string" && url.startsWith("https://")
+    );
+    if (validUrls.length > 0) note.videoUrls = validUrls;
+  }
+
+  await note.save();
   return NextResponse.json({ note });
 }
 
 /* DELETE */
 export async function DELETE(req: NextRequest) {
   await connectDB();
+
   const token = req.cookies.get("accessToken")?.value;
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const user = verifyToken(token);
   const { searchParams } = new URL(req.url);
   const noteId = searchParams.get("noteId");
-  await VideoNote.findOneAndDelete({ _id: noteId, userId: verifyToken(token).userId });
 
+  await VideoNote.findOneAndDelete({ _id: noteId, userId: user.userId });
   return NextResponse.json({ success: true });
 }

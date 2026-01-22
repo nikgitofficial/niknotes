@@ -1,5 +1,11 @@
-import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { put } from "@vercel/blob";
+
+export const config = {
+  api: {
+    bodyParser: false, // required to handle FormData
+  },
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,13 +16,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const blob = await put(file.name, file, {
+    // Upload file to Vercel Blob
+    const blob = await put(file.name, file.stream(), {
       access: "public",
       contentType: file.type,
       addRandomSuffix: true,
     });
 
-    return NextResponse.json(blob);
+    return NextResponse.json(blob); // { url: string, key, size, contentType... }
   } catch (err: any) {
     console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });
