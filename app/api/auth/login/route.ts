@@ -1,4 +1,3 @@
-// ===== /api/auth/login/route.ts =====
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import connectDB from "@/lib/mongodb";
@@ -23,49 +22,27 @@ export async function POST(req: NextRequest) {
     user.refreshToken = refreshToken;
     await user.save();
 
-    const res = NextResponse.json({ 
-      message: "Login success",
-      user: {
-        email: user.email,
-        name: user.name,
-        _id: user._id.toString(),
-      }
-    });
-
-    // CRITICAL: Get the host from the request
-    const host = req.headers.get("host") || "";
-    const isVercel = host.includes("vercel.app");
-    
-    // Cookie configuration
-    const cookieConfig = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none" as const,
-      path: "/",
-    };
-
-    // Add domain only for Vercel deployment
-    if (isVercel) {
-      const domain = host.split(".").slice(-2).join("."); // Gets "vercel.app"
-      Object.assign(cookieConfig, { domain: `.${domain}` });
-    }
-
-    console.log("Setting cookies with config:", { host, isVercel, cookieConfig });
+    const res = NextResponse.json({ message: "Login success" });
 
     res.cookies.set("accessToken", accessToken, {
-      ...cookieConfig,
-      maxAge: 900, // 15 minutes
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+      maxAge: 900,
     });
 
     res.cookies.set("refreshToken", refreshToken, {
-      ...cookieConfig,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return res;
   } catch (err) {
-    console.error("Login error:", err);
+    console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
-
