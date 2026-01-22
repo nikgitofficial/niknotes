@@ -7,8 +7,14 @@ export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
-  // If no tokens, redirect to login
+  // Check if this is an API route
+  const isApiRoute = req.nextUrl.pathname.startsWith("/api");
+
+  // If no tokens, return appropriate response
   if (!accessToken && !refreshToken) {
+    if (isApiRoute) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
@@ -21,16 +27,22 @@ export async function middleware(req: NextRequest) {
   } catch {
     // access token expired, try refresh token
     if (!refreshToken) {
+      if (isApiRoute) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
     try {
       // Connect to DB to verify refresh token
       await connectDB();
-      const decoded = verifyToken(refreshToken); // use JWT refresh secret if needed
+      const decoded = verifyToken(refreshToken, true); // pass true for refresh token
       const user = await User.findById(decoded.userId);
 
       if (!user || user.refreshToken !== refreshToken) {
+        if (isApiRoute) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
         return NextResponse.redirect(new URL("/login", req.url));
       }
 
@@ -44,21 +56,32 @@ export async function middleware(req: NextRequest) {
       const response = NextResponse.next();
       response.cookies.set("accessToken", newAccess, {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
         path: "/",
         maxAge: 900, // 15 minutes
       });
 
       return response;
-    } catch {
+    } catch (error) {
+      console.error("Refresh token error:", error);
+      if (isApiRoute) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       return NextResponse.redirect(new URL("/login", req.url));
     }
   }
 
+  // This should never be reached, but just in case
+  if (isApiRoute) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   return NextResponse.redirect(new URL("/login", req.url));
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"], // protect dashboard routes
+  matcher: [
+    "/dashboard/:path*",
+    "/api/notes/:path*", // Protect API routes too
+  ],
 };
