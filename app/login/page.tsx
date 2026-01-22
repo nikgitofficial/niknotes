@@ -21,24 +21,42 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    
+    console.log("=== FRONTEND LOGIN START ===");
+    console.log("Attempting login for:", form.email);
+    
     try {
-      
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // ⭐ CRITICAL: This is required for cookies!
         body: JSON.stringify(form),
       });
 
+      console.log("Login response status:", res.status);
+      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
+
       if (!res.ok) {
         const data = await res.json();
+        console.error("Login failed:", data);
         setError(data.error || "Login failed");
         setLoading(false);
         return;
       }
 
-      router.push("/dashboard");
+      const data = await res.json();
+      console.log("Login successful!", data);
+      console.log("Cookies after login:", document.cookie);
+      
+      // Small delay to ensure cookies are set
+      setTimeout(() => {
+        console.log("Cookies after 100ms:", document.cookie);
+        console.log("=== FRONTEND LOGIN END ===");
+        router.push("/dashboard");
+      }, 100);
+      
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setError("An unexpected error occurred");
       setLoading(false);
     }
@@ -108,7 +126,7 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center text-gray-500 text-sm md:text-base space-y-2">
             <p>
-              Don’t have an account?{" "}
+              Don't have an account?{" "}
               <a
                 href="/register"
                 className="text-blue-600 hover:underline font-medium"
