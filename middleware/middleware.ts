@@ -7,19 +7,24 @@ export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
-  // No tokens -> login
+  // No tokens -> redirect to login
   if (!accessToken && !refreshToken) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  try {
-    if (accessToken) {
-      verifyToken(accessToken); // valid
+  // Try to verify access token first
+  if (accessToken) {
+    try {
+      verifyToken(accessToken);
       return NextResponse.next();
+    } catch (err) {
+      // Access token invalid, try refresh token
+      console.log("Access token invalid, attempting refresh");
     }
-  } catch {
-    if (!refreshToken) return NextResponse.redirect(new URL("/login", req.url));
+  }
 
+  // Access token missing or invalid, try refresh token
+  if (refreshToken) {
     try {
       await connectDB();
       const decoded: JWTPayload = verifyToken(refreshToken, true);
@@ -29,6 +34,7 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL("/login", req.url));
       }
 
+      // Generate new access token
       const newAccess = signAccessToken({
         userId: user._id.toString(),
         email: user.email,
@@ -41,7 +47,7 @@ export async function middleware(req: NextRequest) {
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
-        maxAge: 900,
+        maxAge: 900, // 15 minutes
       });
 
       return response;
@@ -51,6 +57,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // If we get here, redirect to login
   return NextResponse.redirect(new URL("/login", req.url));
 }
 
