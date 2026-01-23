@@ -14,36 +14,10 @@ export default function VideoDashboard() {
   const [message, setMessage] = useState("");
   const [videos, setVideos] = useState<VideoNote[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   useEffect(() => {
     fetchVideos();
-    checkAuth();
   }, []);
-
-  const checkAuth = async () => {
-    try {
-      const res = await fetch("/api/notes/video", { 
-        credentials: "include",
-      });
-      
-      const cookies = document.cookie;
-      
-      setDebugInfo({
-        status: res.status,
-        hasCookies: cookies.includes('accessToken'),
-        cookies: cookies,
-        headers: Object.fromEntries(res.headers.entries())
-      });
-      
-      console.log("Auth Check:", {
-        status: res.status,
-        cookies: document.cookie
-      });
-    } catch (err) {
-      console.error("Auth check failed:", err);
-    }
-  };
 
   const fetchVideos = async () => {
     try {
@@ -65,68 +39,41 @@ export default function VideoDashboard() {
     }
   };
 
-  const handleUploadWithFetch = async () => {
+  const handleDirectUpload = async () => {
     if (!videoFile) {
       alert("Please select a video first.");
       return;
     }
-
-    const formData = new FormData();
-    formData.append("video", videoFile);
-
-    setIsUploading(true);
-    setMessage("");
-
-    try {
-      console.log("Attempting upload with fetch...");
-      
-      const res = await fetch("/api/notes/video", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      console.log("Response status:", res.status);
-      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
-
-      const data = await res.json();
-      
-      if (res.ok) {
-        setVideos((prev) => [data, ...prev]);
-        setMessage("✅ Upload successful with fetch!");
-        setVideoFile(null);
-      } else {
-        setMessage(`❌ Fetch failed: ${data.error || res.statusText}`);
-        console.error("Upload error:", data);
-      }
-    } catch (err: any) {
-      setMessage(`❌ Error: ${err.message}`);
-      console.error("Upload error:", err);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleUploadWithXHR = async () => {
-    if (!videoFile) {
-      alert("Please select a video first.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("video", videoFile);
 
     setIsUploading(true);
     setMessage("");
     setProgress(0);
 
     try {
-      console.log("Attempting upload with XHR...");
-      console.log("Current cookies:", document.cookie);
-      
+      // Step 1: Get upload signature from your backend
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: videoFile.name }),
+      });
+
+      if (!signRes.ok) {
+        throw new Error("Failed to get upload signature");
+      }
+
+      const { signature, timestamp, cloudName, apiKey, folder } = await signRes.json();
+
+      // Step 2: Upload directly to Cloudinary
+      const formData = new FormData();
+      formData.append("file", videoFile);
+      formData.append("signature", signature);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("api_key", apiKey);
+      formData.append("folder", folder);
+
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/notes/video");
-      xhr.withCredentials = true;
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -135,28 +82,39 @@ export default function VideoDashboard() {
         }
       };
 
-      xhr.onload = () => {
-        setIsUploading(false);
-        
-        console.log("XHR Status:", xhr.status);
-        console.log("XHR Response:", xhr.responseText);
-        console.log("XHR Headers:", xhr.getAllResponseHeaders());
-        
-        if (xhr.status === 201) {
-          const response = JSON.parse(xhr.responseText);
-          setVideos((prev) => [response, ...prev]);
-          setMessage("✅ Upload successful with XHR!");
-          setProgress(0);
-          setVideoFile(null);
+      xhr.onload = async () => {
+        if (xhr.status === 200) {
+          const cloudinaryResponse = JSON.parse(xhr.responseText);
+          
+          // Step 3: Save video URL to your database
+          const saveRes = await fetch("/api/notes/video", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              videoUrl: cloudinaryResponse.secure_url,
+              title: videoFile.name,
+            }),
+          });
+
+          if (saveRes.ok) {
+            const savedVideo = await saveRes.json();
+            setVideos((prev) => [savedVideo, ...prev]);
+            setMessage("✅ Upload successful!");
+            setProgress(0);
+            setVideoFile(null);
+          } else {
+            throw new Error("Failed to save video to database");
+          }
         } else {
-          setMessage(`❌ XHR failed: ${xhr.status} - ${xhr.responseText}`);
+          throw new Error(`Upload failed: ${xhr.status}`);
         }
+        setIsUploading(false);
       };
 
       xhr.onerror = () => {
         setIsUploading(false);
         setMessage("❌ Network error occurred");
-        console.error("XHR error");
       };
 
       xhr.send(formData);
@@ -169,20 +127,6 @@ export default function VideoDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6">
-      {/* Debug Info */}
-      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-        <h3 className="font-bold mb-2">🔍 Debug Info</h3>
-        <pre className="text-xs overflow-auto">
-          {JSON.stringify(debugInfo, null, 2)}
-        </pre>
-        <button 
-          onClick={checkAuth}
-          className="mt-2 px-3 py-1 bg-yellow-600 text-white rounded text-sm"
-        >
-          Refresh Auth Check
-        </button>
-      </div>
-
       {/* Upload Section */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         <h2 className="text-2xl font-bold mb-4">Upload Video</h2>
@@ -220,29 +164,16 @@ export default function VideoDashboard() {
             </div>
           )}
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleUploadWithFetch}
-              disabled={!videoFile || isUploading}
-              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold
-                hover:bg-green-700 active:bg-green-800
-                disabled:bg-gray-400 disabled:cursor-not-allowed
-                transition-colors duration-200"
-            >
-              Upload with Fetch
-            </button>
-
-            <button
-              onClick={handleUploadWithXHR}
-              disabled={!videoFile || isUploading}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold
-                hover:bg-blue-700 active:bg-blue-800
-                disabled:bg-gray-400 disabled:cursor-not-allowed
-                transition-colors duration-200"
-            >
-              Upload with XHR
-            </button>
-          </div>
+          <button
+            onClick={handleDirectUpload}
+            disabled={!videoFile || isUploading}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold
+              hover:bg-blue-700 active:bg-blue-800
+              disabled:bg-gray-400 disabled:cursor-not-allowed
+              transition-colors duration-200"
+          >
+            {isUploading ? "Uploading..." : "Upload Video"}
+          </button>
 
           {message && (
             <div className={`p-3 rounded-md ${
