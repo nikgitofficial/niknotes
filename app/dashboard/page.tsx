@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import {
   HiHome,
   HiUser,
@@ -42,6 +43,7 @@ export default function DashboardSPA() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState<Page>("dashboard");
+  const { theme, setTheme } = useTheme();
 
   // ✅ Snackbar state
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string }>({
@@ -216,9 +218,23 @@ export default function DashboardSPA() {
       {/* Main */}
       <div className="flex-1 flex flex-col md:ml-64">
         <header className="fixed top-0 left-64 right-0 h-16 px-6 bg-white shadow flex items-center justify-between z-40">
-          <button className="md:hidden p-2" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            ☰
-          </button>
+        <button
+  className="md:hidden flex items-center gap-2 px-3 py-2 rounded-md bg-green-50 text-green-800 font-medium"
+  onClick={() => setSidebarOpen(!sidebarOpen)}
+>
+  {sidebarOpen ? (
+    <>
+      <HiX size={18} />
+      Close sidebar
+    </>
+  ) : (
+    <>
+      ☰
+      Open sidebar
+    </>
+  )}
+</button>
+
           <p className="italic text-gray-700">Welcome, {user.name}</p>
         </header>
 

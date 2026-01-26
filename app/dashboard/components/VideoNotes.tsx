@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { HiPencil, HiTrash, HiX } from "react-icons/hi";
 
 type VideoNote = {
@@ -19,6 +19,9 @@ export default function VideoDashboard() {
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+
+  // Ref to store active XHRs for cancellation
+  const xhrRefs = useRef<{ [key: string]: XMLHttpRequest }>({});
 
   useEffect(() => {
     fetchVideos();
@@ -80,6 +83,7 @@ export default function VideoDashboard() {
         formData.append("folder", folder);
 
         const xhr = new XMLHttpRequest();
+        xhrRefs.current[file.name] = xhr; // store xhr for cancel
         xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
 
         xhr.upload.onprogress = (event) => {
@@ -90,6 +94,7 @@ export default function VideoDashboard() {
         };
 
         xhr.onload = () => {
+          delete xhrRefs.current[file.name];
           if (xhr.status === 200) {
             const cloudinaryResponse = JSON.parse(xhr.responseText);
             resolve(cloudinaryResponse.secure_url);
@@ -99,6 +104,7 @@ export default function VideoDashboard() {
         };
 
         xhr.onerror = () => {
+          delete xhrRefs.current[file.name];
           reject(new Error(`Network error for ${file.name}`));
         };
 
@@ -107,6 +113,14 @@ export default function VideoDashboard() {
         reject(err);
       }
     });
+  };
+
+  const cancelUpload = () => {
+    Object.values(xhrRefs.current).forEach((xhr) => xhr.abort());
+    xhrRefs.current = {};
+    setIsUploading(false);
+    setMessage("❌ Upload canceled");
+    setProgress({});
   };
 
   const handleMultipleUpload = async () => {
@@ -278,14 +292,22 @@ export default function VideoDashboard() {
           </div>
 
           {isUploading && (
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-              <div
-                className="bg-blue-600 h-4 transition-all duration-300 flex items-center justify-center text-xs text-white font-semibold"
-                style={{ width: `${totalProgress}%` }}
-              >
-                {Math.round(totalProgress)}%
+            <>
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div
+                  className="bg-blue-600 h-4 transition-all duration-300 flex items-center justify-center text-xs text-white font-semibold"
+                  style={{ width: `${totalProgress}%` }}
+                >
+                  {Math.round(totalProgress)}%
+                </div>
               </div>
-            </div>
+              <button
+                onClick={cancelUpload}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors mt-2"
+              >
+                Cancel Upload
+              </button>
+            </>
           )}
 
           <button

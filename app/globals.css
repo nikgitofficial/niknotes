@@ -70,13 +70,11 @@ body {
   }
 }
 
-/* globals.css or HomePage.module.css */
 .img-glow {
   transition: all 0.3s;
   opacity: 0.3;
 }
 .img-glow:hover {
   opacity: 1;
-  box-shadow: 0 0 20px #facc15; /* yellow glow */
+  box-shadow: 0 0 20px #facc15;
 }
-
