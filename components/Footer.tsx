@@ -1,8 +1,18 @@
+"use client";
+
 import Image from "next/image";
 import { HiOutlineMail, HiOutlineGlobeAlt } from "react-icons/hi";
 import { FaGithub } from "react-icons/fa";
+import { useEffect, useState } from "react";
 
 export default function Footer() {
+  const [year, setYear] = useState<number | null>(null);
+
+  // Set year on client side to prevent hydration mismatch
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
+
   return (
     <footer className="w-full backdrop-blur-md bg-white/30 mt-10">
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center text-[#006400] text-sm italic">
@@ -17,23 +27,24 @@ export default function Footer() {
             alt="NikNotes Logo"
             width={50}
             height={30}
+            className="w-auto h-auto" // maintain aspect ratio
           />
-          <p>© {new Date().getFullYear()} NikNotes. All rights reserved.</p>
+          <p>© {year ?? "…"} NikNotes. All rights reserved.</p>
         </div>
 
         {/* Links + Social Icons */}
         <div className="flex gap-4 mt-2 md:mt-0 items-center">
-          {["Privacy", "Terms", "Contact"].map((item) => (
-            <a
-              key={item}
-              href={item.toLowerCase()}
-              className="relative hover:text-[#006400] transition-colors duration-200
-                before:content-[''] before:absolute before:-bottom-1 before:left-0 before:w-0 before:h-[1px] 
-                before:bg-[#006400] before:transition-all before:duration-300 hover:before:w-full"
-            >
-              {item}
-            </a>
-          ))}
+        {["Privacy", "Terms", "Contact"].map((item) => (
+  <a
+    key={item}
+    href={item.toLowerCase()}
+    className="relative hover:text-[#006400] transition-colors duration-200"
+  >
+    {item}
+    <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#006400] transition-all duration-300 group-hover:w-full"></span>
+  </a>
+))}
+
 
           {/* Social Icons */}
           <a
@@ -54,7 +65,6 @@ export default function Footer() {
             <HiOutlineMail size={20} />
           </a>
 
-          {/* Portfolio / Website Icon */}
           <a
             href="https://nikkport.vercel.app/"
             target="_blank"

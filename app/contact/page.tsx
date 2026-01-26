@@ -48,34 +48,47 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-100 to-gray-200 text-black">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-50 to-gray-200 font-sans text-gray-900">
       <Navbar />
 
-      <main className="flex flex-1 flex-col items-center justify-center px-4 py-16 space-y-12">
+      {/* Spacer to prevent content overlapping fixed navbar */}
+      <div className="h-20 md:h-24" />
+
+      <main className="flex flex-1 flex-col items-center justify-start px-4 py-16 space-y-12 w-full max-w-7xl mx-auto">
+        {/* Header */}
         <div className="text-center max-w-2xl">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 animate-fade-in">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight animate-fade-in mb-4">
             Get in Touch
           </h1>
-          <p className="text-lg md:text-xl mb-6 animate-fade-in delay-100">
-            Have questions, suggestions, or just want to say hello? Fill out the form below and we'll get back to you as soon as possible.
+          <p className="text-gray-700 text-lg md:text-xl animate-fade-in delay-100">
+            Have questions, feedback, or ideas? Fill out the form below and our team will respond promptly.  
+            We love hearing from <span className="font-semibold text-blue-600">developers, students, and creators</span> alike.
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-10 w-full max-w-6xl">
+        <div className="flex flex-col md:flex-row gap-10 w-full">
           {/* Contact Form */}
           <form
             onSubmit={handleSubmit}
             className="flex-1 bg-white shadow-2xl rounded-2xl p-8 md:p-10 flex flex-col gap-5 animate-fade-in delay-200"
           >
-            {error && <p className="text-red-600 bg-red-50 border border-red-200 p-2 rounded text-center">{error}</p>}
-            {success && <p className="text-green-600 bg-green-50 border border-green-200 p-2 rounded text-center">{success}</p>}
+            {error && (
+              <p className="text-red-600 bg-red-50 border border-red-200 p-2 rounded text-center">
+                {error}
+              </p>
+            )}
+            {success && (
+              <p className="text-green-600 bg-green-50 border border-green-200 p-2 rounded text-center">
+                {success}
+              </p>
+            )}
 
             <input
               type="text"
               placeholder="Your Name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-black text-black transition"
+              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500 text-gray-900 transition"
               required
             />
             <input
@@ -83,14 +96,14 @@ export default function ContactPage() {
               placeholder="Email Address"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-black text-black transition"
+              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500 text-gray-900 transition"
               required
             />
             <textarea
               placeholder="Your Message"
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-black text-black transition resize-none h-32"
+              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500 text-gray-900 transition resize-none h-36"
               required
             ></textarea>
 
@@ -115,8 +128,8 @@ export default function ContactPage() {
             <p>
               <span className="font-semibold">Email:</span> nikkopacenio@gmail.com
             </p>
-            <p className="mt-4">
-              We aim to respond to all inquiries within 24 hours.
+            <p className="mt-4 text-gray-600">
+              We aim to respond to all inquiries within <span className="font-medium">24 hours</span>.
             </p>
           </div>
         </div>

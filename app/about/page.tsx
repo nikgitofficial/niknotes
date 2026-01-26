@@ -8,28 +8,28 @@ export default function AboutPage() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDD20D]">
+    <div className="flex flex-col min-h-screen bg-[#FDD20D] font-sans">
       <Navbar />
 
-      <main className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center space-y-8">
-        <h1 className="text-5xl md:text-6xl font-extrabold text-gray-800 animate-fade-up animate-delay-50 mb-6">
-          About NikNotes
+      {/* Add padding-top to avoid overlapping the navbar */}
+      <main className="flex flex-1 flex-col items-center justify-start px-4 pt-24 md:pt-32 pb-16 text-center space-y-10">
+        {/* Heading */}
+        <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 animate-fade-up animate-delay-50 mb-6 tracking-tight italic">
+          About <span className="text-blue-700">NikNotes</span>
         </h1>
 
-        <p className="text-gray-600 text-lg md:text-xl animate-fade-up animate-delay-100 max-w-2xl">
-          NikNotes is a modern, secure note-taking app designed to help you
-          organize your thoughts, tasks, and ideas effortlessly. With cloud
-          sync, real-time updates, and a simple interface, you can focus on
-          what matters most.
+        {/* Paragraphs */}
+        <p className="text-gray-900 text-base md:text-lg lg:text-xl leading-relaxed md:leading-loose max-w-3xl tracking-wide animate-fade-up animate-delay-100">
+          <span className="font-semibold">NikNotes</span> is a modern, secure note-taking platform designed to help professionals, students, and creatives organize their thoughts, tasks, and ideas with ease.  
+          With <span className="font-medium text-blue-600">cloud sync, real-time collaboration, and an intuitive interface</span>, you can focus on what matters most without distractions.
         </p>
 
-        <p className="text-gray-600 text-lg md:text-xl animate-fade-up animate-delay-150 max-w-2xl">
-          Our mission is to provide a reliable and intuitive platform for
-          everyone — whether you're a student, professional, or creative
-          thinker — to capture, manage, and revisit your notes anytime,
-          anywhere.
+        <p className="text-gray-900 text-base md:text-lg lg:text-xl leading-relaxed md:leading-loose max-w-3xl tracking-wide animate-fade-up animate-delay-150">
+          Our mission is to provide a reliable, efficient, and professional-grade platform where you can <span className="font-semibold">capture, manage, and revisit your notes anytime, anywhere</span>.  
+          NikNotes adapts to your workflow, whether you’re a developer, designer, student, or creative thinker.
         </p>
 
+        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 animate-fade-up animate-delay-200">
           <button
             onClick={() => router.push("/register")}
