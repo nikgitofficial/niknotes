@@ -13,16 +13,33 @@ export async function POST(req: NextRequest) {
     }
 
     const user: JWTPayload = verifyToken(token);
-    const { videoUrl, title } = await req.json();
+    const body = await req.json();
+    
+    // Support both single videoUrl and multiple videoUrls
+    const { videoUrl, videoUrls, title } = body;
+    
+    // Determine which format is being used
+    let urls: string[];
+    if (videoUrls && Array.isArray(videoUrls)) {
+      urls = videoUrls;
+    } else if (videoUrl) {
+      urls = [videoUrl];
+    } else {
+      return NextResponse.json({ error: "Missing videoUrl or videoUrls" }, { status: 400 });
+    }
 
-    if (!videoUrl || !title) {
-      return NextResponse.json({ error: "Missing videoUrl or title" }, { status: 400 });
+    if (!title) {
+      return NextResponse.json({ error: "Missing title" }, { status: 400 });
+    }
+
+    if (urls.length === 0) {
+      return NextResponse.json({ error: "At least one video URL is required" }, { status: 400 });
     }
 
     const newVideo = await VideoNote.create({
       userId: user.userId,
       title,
-      videoUrls: [videoUrl],
+      videoUrls: urls,
     });
 
     return NextResponse.json(newVideo, { status: 201 });
