@@ -55,7 +55,7 @@ const startCamera = async () => {
     setCameraStream(stream);
   } catch (err) {
     console.error("Camera error:", err);
-    alert("Cannot access camera. Please check permissions.");
+   alert("Cannot access camera. Please check permissions or camera may be in use by another app.");
   }
 };
 
