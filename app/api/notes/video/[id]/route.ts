@@ -11,7 +11,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Update video title
+// Update video title or sizes
 export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -25,10 +25,17 @@ export async function PATCH(
     }
 
     const user: JWTPayload = verifyToken(token);
-    const { title } = await req.json();
+    const body = await req.json();
+    const { title, videoSizes } = body;
 
-    if (!title || !title.trim()) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    // At least one field must be provided
+    if (!title && !videoSizes) {
+      return NextResponse.json({ error: "Title or videoSizes is required" }, { status: 400 });
+    }
+
+    // Validate title if provided
+    if (title !== undefined && (!title || !title.trim())) {
+      return NextResponse.json({ error: "Title cannot be empty" }, { status: 400 });
     }
 
     // ⭐ Await params
@@ -44,8 +51,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Update title
-    video.title = title.trim();
+    // Update fields
+    if (title !== undefined) {
+      video.title = title.trim();
+    }
+    if (videoSizes !== undefined) {
+      video.videoSizes = videoSizes;
+    }
+    
     await video.save();
 
     return NextResponse.json(video);
@@ -55,7 +68,6 @@ export async function PATCH(
   }
 }
 
-// Delete video
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -64,41 +76,39 @@ export async function DELETE(
     await connectDB();
 
     const token = req.cookies.get("accessToken")?.value;
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const user: JWTPayload = verifyToken(token);
 
-    // ⭐ Await params
     const { id } = await context.params;
 
-    // Find video and verify ownership
     const video = await VideoNote.findById(id);
-    if (!video) {
-      return NextResponse.json({ error: "Video not found" }, { status: 404 });
-    }
-
-    if (video.userId.toString() !== user.userId) {
+    if (!video) return NextResponse.json({ error: "Video not found" }, { status: 404 });
+    if (video.userId.toString() !== user.userId)
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
-    // Delete from Cloudinary
+    // Helper: extract public_id from Cloudinary URL
+    const getPublicIdFromUrl = (url: string) => {
+      const cleanUrl = url.split('?')[0]; // remove query string
+      const parts = cleanUrl.split('/');
+      // skip protocol + cloud_name + resource_type + upload
+      const uploadIndex = parts.findIndex(p => p === 'upload');
+      const relevantParts = uploadIndex >= 0 ? parts.slice(uploadIndex + 1) : parts.slice(6);
+      // remove version if exists
+      const versionIndex = relevantParts.findIndex(p => p.startsWith('v') && /^\d+$/.test(p.slice(1)));
+      const finalParts = versionIndex >= 0 ? relevantParts.slice(versionIndex + 1) : relevantParts;
+      // remove file extension
+      return finalParts.join('/').replace(/\.[^/.]+$/, '');
+    };
+
+    // Delete each video from Cloudinary
     for (const url of video.videoUrls) {
       try {
-        // Extract public_id from Cloudinary URL
-        // URL format: https://res.cloudinary.com/{cloud_name}/video/upload/v{version}/{public_id}.{format}
-        const urlParts = url.split('/');
-        const fileWithExt = urlParts[urlParts.length - 1];
-        const publicId = fileWithExt.split('.')[0];
-        const folder = urlParts[urlParts.length - 2];
-        const fullPublicId = `${folder}/${publicId}`;
-
-        await cloudinary.uploader.destroy(fullPublicId, { resource_type: 'video' });
-        console.log(`Deleted from Cloudinary: ${fullPublicId}`);
+        const publicId = getPublicIdFromUrl(url);
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+        console.log(`Deleted from Cloudinary: ${publicId}`);
       } catch (cloudinaryErr) {
         console.error("Cloudinary deletion error:", cloudinaryErr);
-        // Continue even if Cloudinary deletion fails
       }
     }
 

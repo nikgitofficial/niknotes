@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { HiOutlinePhotograph, HiX } from "react-icons/hi";
+import { useToast } from "@/app/(providers)/ToastProvider"; // import global toast
 
 type ImageNote = {
   _id: string;
@@ -11,6 +12,8 @@ type ImageNote = {
 };
 
 export default function ImageNotes() {
+  const { showToast: globalShowToast } = useToast(); // global toast hook
+
   const [notes, setNotes] = useState<ImageNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -43,6 +46,9 @@ export default function ImageNotes() {
   ) => {
     setSnackbar({ message, type });
     setTimeout(() => setSnackbar(null), 3000);
+
+    // Trigger global toast as well
+    globalShowToast(message, type);
   };
 
   const fetchNotes = async () => {
@@ -380,7 +386,7 @@ export default function ImageNotes() {
       {/* Snackbar */}
       {snackbar && (
         <div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded shadow-lg text-white
+          className={`fixed top-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg text-white z-50 text-sm sm:text-base max-w-[90%] sm:max-w-md text-center
           ${
             snackbar.type === "create"
               ? "bg-green-600"
@@ -388,28 +394,12 @@ export default function ImageNotes() {
               ? "bg-blue-600"
               : snackbar.type === "delete"
               ? "bg-red-600"
-              : "bg-gray-600"
+              : "bg-sky-500"
           } animate-slide-in`}
         >
           {snackbar.message}
         </div>
       )}
-
-      <style jsx>{`
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-        @keyframes slide-in {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -34,16 +34,17 @@ export default function Footer() {
 
         {/* Links + Social Icons */}
         <div className="flex gap-4 mt-2 md:mt-0 items-center">
-        {["Privacy", "Terms", "Contact"].map((item) => (
+{["Privacy", "Terms", "Contact"].map((item) => (
   <a
     key={item}
     href={item.toLowerCase()}
-    className="relative hover:text-[#006400] transition-colors duration-200"
+    className="relative group text-[#006400] hover:text-black transition-colors duration-200"
   >
     {item}
-    <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#006400] transition-all duration-300 group-hover:w-full"></span>
+    <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-black transition-all duration-300 group-hover:w-full"></span>
   </a>
 ))}
+
 
 
           {/* Social Icons */}

@@ -10,6 +10,8 @@ import {
   HiOutlinePhotograph,
   HiOutlinePaperClip,
   HiX,
+  HiChevronRight,
+  HiChevronLeft,
 } from "react-icons/hi";
 import LogoutButton from "@/components/LogoutButton";
 
@@ -20,7 +22,7 @@ import ImageNotes from "./components/ImageNotes";
 import FileNotes from "./components/FileNotes";
 import VideoNotes from "./components/VideoNotes";
 import Profile from "./components/Profile";
-import Settings from "./components/Settings"; // ✅ import your Settings page
+import Settings from "./components/Settings";
 
 type User = {
   email: string;
@@ -45,7 +47,6 @@ export default function DashboardSPA() {
   const [activePage, setActivePage] = useState<Page>("dashboard");
   const { theme, setTheme } = useTheme();
 
-  // ✅ Snackbar state
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string }>({
     open: false,
     message: "",
@@ -89,19 +90,17 @@ export default function DashboardSPA() {
 
   if (loading) return <p className="p-8">Loading...</p>;
 
-  if (!user)
+  if (!user) {
     return (
       <p className="p-8">
         Unauthorized. Please{" "}
-        <a
-          href="/login"
-          className="text-green-600 font-semibold hover:underline"
-        >
+        <a href="/login" className="text-green-600 font-semibold hover:underline">
           login
         </a>
         .
       </p>
     );
+  }
 
   const navItems = [
     { name: "Home", icon: <HiHome size={20} />, key: "dashboard" },
@@ -159,19 +158,18 @@ export default function DashboardSPA() {
       case "profile":
         return <Profile user={user} onPhotoUpload={handlePhotoUpload} />;
       case "settings":
-        return <Settings user={user} />; // ✅ render Settings page
+        return <Settings user={user} />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300
-        md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:relative`}
-      >
+        md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:z-auto`}>
         <div className="flex flex-col items-center justify-center h-32 border-b p-2">
           <img src="/images/logov3.png" alt="NikNotes Logo" className="h-10 w-10 mb-1" />
 
@@ -196,58 +194,103 @@ export default function DashboardSPA() {
           <h1 className="text-xl font-bold italic text-green-800 mt-1">{user.name}</h1>
         </div>
 
-        <nav className="flex flex-col mt-4 px-4 space-y-2">
+        <nav className="flex flex-col mt-4 px-4 space-y-2 overflow-y-auto max-h-[calc(100vh-8rem)]">
           {navItems.map((item) => (
             <button
               key={item.key}
-              onClick={() => setActivePage(item.key as Page)}
+              onClick={() => {
+                setActivePage(item.key as Page);
+                // Close sidebar on mobile after selecting an item
+                if (window.innerWidth < 768) {
+                  setSidebarOpen(false);
+                }
+              }}
               className={`flex items-center gap-3 px-3 py-2 rounded-md transition
-              ${activePage === item.key ? "bg-green-50 text-green-800" : "text-gray-700 hover:bg-green-50"}`}
-            >
+              ${activePage === item.key ? "bg-green-50 text-green-800 font-semibold" : "text-gray-700 hover:bg-green-50"}`}>
               {item.icon}
               {item.name}
             </button>
           ))}
 
-          <div className="mt-6 px-3">
+          <div className="mt-6 px-3 pb-4">
             <LogoutButton />
           </div>
         </nav>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col md:ml-64">
-        <header className="fixed top-0 left-64 right-0 h-16 px-6 bg-white shadow flex items-center justify-between z-40">
-        <button
-  className="md:hidden flex items-center gap-2 px-3 py-2 rounded-md bg-green-50 text-green-800 font-medium"
-  onClick={() => setSidebarOpen(!sidebarOpen)}
->
-  {sidebarOpen ? (
-    <>
-      <HiX size={18} />
-      Close sidebar
-    </>
-  ) : (
-    <>
-      ☰
-      Open sidebar
-    </>
-  )}
-</button>
+      {/* Arrow Toggle Button - Mobile Only */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className={`fixed top-1/2 -translate-y-1/2 z-[60] md:hidden
+          bg-green-700 text-white p-2 rounded-r-lg shadow-lg
+          hover:bg-green-800 transition-all duration-300
+          ${sidebarOpen ? "left-64" : "left-0"}`}
+        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}>
+        {sidebarOpen ? (
+          <HiChevronLeft size={24} />
+        ) : (
+          <HiChevronRight size={24} />
+        )}
+      </button>
 
-          <p className="italic text-gray-700">Welcome, {user.name}</p>
-        </header>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col relative">
+        {/* Overlay for mobile when sidebar is open - Only covers main content */}
+        {sidebarOpen && (
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-        <main className="flex-1 p-6 pt-20 overflow-y-auto">{renderPage()}</main>
+        <header className="fixed top-0 left-0 md:left-64 right-0 h-16 px-6 bg-white shadow flex items-center justify-between z-30">
+  {/* Logo on the left */}
+  <div className="flex items-center gap-3">
+    <img
+      src="/images/logov3.png" // your logo in public/images
+      alt="NikNotes Logo"
+      className="h-10 w-10 object-contain"
+    />
+    <p className="italic text-gray-700 hidden sm:block">Dashboard</p>
+  </div>
+
+  {/* Welcome text on the right */}
+  <p className="italic text-gray-700">Welcome, {user.name}</p>
+</header>
+
+
+        <main className="flex-1 p-4 sm:p-6 pt-20 overflow-y-auto bg-gray-100">
+          {renderPage()}
+        </main>
       </div>
+      {/* Mobile Footer Navigation (Mobile Only) */}
+<footer className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow md:hidden">
+  <nav className="flex justify-around items-center h-14">
+    {navItems.map((item) => (
+      <button
+        key={item.key}
+        onClick={() => setActivePage(item.key as Page)}
+        className={`flex flex-col items-center justify-center text-xs transition
+          ${
+            activePage === item.key
+              ? "text-green-700 font-semibold"
+              : "text-gray-500"
+          }`}
+      >
+        {item.icon}
+        <span className="mt-0.5">{item.name.split(" ")[0]}</span>
+      </button>
+    ))}
+  </nav>
+</footer>
+
 
       {/* Snackbar */}
       {snackbar.open && (
         <div
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-50
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[70]
                         bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg
-                        flex items-center gap-3"
-        >
+                        flex items-center gap-3">
           <span>{snackbar.message}</span>
           <button onClick={() => setSnackbar({ open: false, message: "" })}>
             <HiX />

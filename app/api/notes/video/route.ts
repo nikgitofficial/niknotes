@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     // Support both single videoUrl and multiple videoUrls
-    const { videoUrl, videoUrls, title } = body;
+    const { videoUrl, videoUrls, title, videoSizes } = body;
     
     // Determine which format is being used
     let urls: string[];
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       userId: user.userId,
       title,
       videoUrls: urls,
+      videoSizes: videoSizes || [], // Add videoSizes, default to empty array if not provided
     });
 
     return NextResponse.json(newVideo, { status: 201 });
