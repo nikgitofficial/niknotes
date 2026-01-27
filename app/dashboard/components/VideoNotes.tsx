@@ -59,6 +59,25 @@ const startCamera = async () => {
   }
 };
 
+// Function to close camera
+const closeCamera = () => {
+  // Stop all tracks
+  cameraStream?.getTracks().forEach(track => track.stop());
+  setCameraStream(null);
+  
+  // Stop recording if active
+  if (recording) {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  }
+  
+  // Clear timer
+  if (timerRef.current) {
+    clearInterval(timerRef.current);
+    setRecordingTime(0);
+  }
+};
+
 
 
 const startRecording = () => {
@@ -471,12 +490,22 @@ const uploadSingleVideo = async (file: File, index: number): Promise<string> => 
       muted
       playsInline
     />
-     <button
-    onClick={() => setFacingMode(facingMode === "user" ? "environment" : "user")}
-    className="px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm sm:text-base font-medium mt-2"
-  >
-    Flip Camera
-  </button>
+    
+    <div className="flex gap-2">
+      <button
+        onClick={() => setFacingMode(facingMode === "user" ? "environment" : "user")}
+        className="flex-1 px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm sm:text-base font-medium"
+      >
+        Flip Camera
+      </button>
+      
+      <button
+        onClick={closeCamera}
+        className="flex-1 px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm sm:text-base font-medium"
+      >
+        Close Camera
+      </button>
+    </div>
 
     {/* Timer display */}
     {recording && (
@@ -491,14 +520,14 @@ const uploadSingleVideo = async (file: File, index: number): Promise<string> => 
     {!recording ? (
       <button
         onClick={startRecording}
-        className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm sm:text-base font-medium"
+        className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm sm:text-base font-medium w-full"
       >
         Start Recording
       </button>
     ) : (
       <button
         onClick={stopRecording}
-        className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm sm:text-base font-medium"
+        className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm sm:text-base font-medium w-full"
       >
         Stop Recording
       </button>
