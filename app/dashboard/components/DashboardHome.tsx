@@ -53,7 +53,7 @@ export default function DashboardHome({ user }: Props) {
   }, []);
 
   return (
-    <>
+    <div className="pb-20 sm:pb-6">
       <h2 className="text-xl sm:text-2xl font-bold text-green-800 mb-4 sm:mb-6">
         Dashboard
       </h2>
@@ -80,11 +80,10 @@ export default function DashboardHome({ user }: Props) {
         </div>
 
         {/* Last Login */}
-        <div className="bg-white p-3 sm:p-4 rounded-lg shadow col-span-1">
+        <div className="bg-white p-3 sm:p-4 rounded-lg shadow col-span-1 sm:col-span-2 xl:col-span-2">
           <p className="text-xs sm:text-sm text-gray-600">Last Login</p>
           <p className="text-sm sm:text-lg font-semibold text-black">Today</p>
         </div>
-        <br />
 
         {/* Text */}
         <StatCard label="Text Notes" value={totalTextNotes} />
@@ -98,7 +97,7 @@ export default function DashboardHome({ user }: Props) {
         {/* Video */}
         <StatCard label="Video Notes" value={totalVideoNotes} />
       </div>
-    </>
+    </div>
   );
 }
 
